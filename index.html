@@ -405,7 +405,7 @@
             </div>
             <div class="form-group">
                 <label class="field-label">Contract Address (SkillTrustCertificate)</label>
-                <input type="text" id="contractAddressInput" placeholder="วาง Contract Address ที่ได้จาก Remix (0x...)" />
+                <input type="text" id="contractAddressInput" value="0x07174454acfB9D6f05a15eC79Dd02Cf134D959f8" placeholder="วาง Contract Address ที่ได้จาก Remix (0x...)" />
             </div>
         </div>
         <div class="form-group" style="margin-top: 6px;">
@@ -421,7 +421,7 @@
             </div>
         </div>
         <div class="meta-info" id="status">สถานะบัญชี: ยังไม่ได้เชื่อมต่อ Private Key (โหมดอ่านข้อมูลสาธารณะผ่าน Infura)</div>
-        <div class="meta-info" id="contractStatus">สถานะสัญญา: กรุณาระบุ Contract Address</div>
+        <div class="meta-info" id="contractStatus">สถานะสัญญา: เชื่อมต่อที่ 0x07174454acfB9D6f05a15eC79Dd02Cf134D959f8</div>
     </div>
 
     <!-- Row 1: 1. Create Course & 2+3. Issue Certificate + Store Hash -->
@@ -613,7 +613,7 @@
 
     const INFURA_URL = "https://sepolia.infura.io/v3/07a1ba8914704deca89e29fa729d34a5";
     const PRIVATE_KEY = ""; // กรอกผ่านหน้าเว็บ หรือใส่ไว้ที่นี่
-    const DEFAULT_CONTRACT_ADDRESS = ""; // นำ Contract Address หลัง Deploy มาวางที่นี่
+    const DEFAULT_CONTRACT_ADDRESS = "0x07174454acfB9D6f05a15eC79Dd02Cf134D959f8";
 
     // ABI ของสัญญา SkillTrustCertificate
     const CONTRACT_ABI = [
