@@ -906,6 +906,7 @@
             // 3. แปลง Private Key เป็น Account และเก็บไว้ใน Wallet
             account = web3.eth.accounts.privateKeyToAccount(privateKeyVal);
             web3.eth.accounts.wallet.add(account);
+            web3.eth.defaultAccount = account.address;
 
             document.getElementById("status").textContent =
                 `Connected via Infura with account: ${account.address}`;
@@ -929,6 +930,41 @@
         } catch (err) {
             setStatus(`❌ การเชื่อมต่อล้มเหลว: ${err.message}`, "error");
         }
+    }
+
+    // ฟังก์ชันส่งธุรกรรมผ่าน Infura (ลงนามด้วย Private Key ในเบราว์เซอร์ แล้วส่งผ่าน eth_sendRawTransaction)
+    async function executeContractTx(methodCall, value = 0) {
+        if (!web3 || !contract || !account) {
+            throw new Error("กรุณาเชื่อมต่อผ่าน Infura ด้วย Private Key ก่อนทำรายการ");
+        }
+
+        const encodedABI = methodCall.encodeABI();
+        const nonce = await web3.eth.getTransactionCount(account.address, "pending");
+
+        const rawGasPrice = await web3.eth.getGasPrice();
+        const gasPrice = Math.floor(Number(rawGasPrice) * 1.25).toString();
+
+        let gasLimit;
+        try {
+            const est = await methodCall.estimateGas({ from: account.address, value: value });
+            gasLimit = Math.floor(Number(est) * 1.3);
+        } catch (e) {
+            gasLimit = 350000;
+        }
+
+        const txData = {
+            from: account.address,
+            to: contract.options.address,
+            data: encodedABI,
+            value: value,
+            gas: gasLimit,
+            gasPrice: gasPrice,
+            nonce: nonce
+        };
+
+        const signedTx = await web3.eth.accounts.signTransaction(txData, account.privateKey);
+        const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+        return receipt;
     }
 
     function fillCurrentWallet(inputId) {
@@ -1004,14 +1040,7 @@
         try {
             setStatus(`⏳ กำลังบันทึกหลักสูตร ${code} (${name}) ลงบน Blockchain ผ่าน Infura...`, "pending");
 
-            const gasLimit = await contract.methods.createCourse(code, name, desc).estimateGas({
-                from: account.address
-            }).catch(() => 250000);
-
-            const tx = await contract.methods.createCourse(code, name, desc).send({
-                from: account.address,
-                gas: gasLimit
-            });
+            const tx = await executeContractTx(contract.methods.createCourse(code, name, desc));
 
             setStatus(`✅ ลงทะเบียนหลักสูตร ${code} สำเร็จ! Tx Hash: ${tx.transactionHash}`, "success");
             document.getElementById("issueCourseCodeInput").value = code;
@@ -1084,14 +1113,9 @@
         try {
             setStatus(`⏳ กำลังออกใบรับรอง ${certId} และบันทึก Hash (${certHash.slice(0, 14)}...) ลงบน Blockchain...`, "pending");
 
-            const gasLimit = await contract.methods.issueCertificate(certId, courseCode, recipient, certHash).estimateGas({
-                from: account.address
-            }).catch(() => 300000);
-
-            const tx = await contract.methods.issueCertificate(certId, courseCode, recipient, certHash).send({
-                from: account.address,
-                gas: gasLimit
-            });
+            const tx = await executeContractTx(
+                contract.methods.issueCertificate(certId, courseCode, recipient, certHash)
+            );
 
             // เก็บชื่อผู้รับแบบ Off-chain ไว้แสดงคู่กับ QR Code
             saveOffChainRecipientName(certId, recipientName);
@@ -1252,14 +1276,9 @@
         try {
             setStatus(`⏳ กำลังเพิกถอนใบรับรอง ${certId} บน Blockchain...`, "pending");
 
-            const gasLimit = await contract.methods.revokeCertificate(certId, reason).estimateGas({
-                from: account.address
-            }).catch(() => 200000);
-
-            const tx = await contract.methods.revokeCertificate(certId, reason).send({
-                from: account.address,
-                gas: gasLimit
-            });
+            const tx = await executeContractTx(
+                contract.methods.revokeCertificate(certId, reason)
+            );
 
             setStatus(`✅ เพิกถอนใบรับรอง ${certId} สำเร็จ! Tx Hash: ${tx.transactionHash}`, "success");
             document.getElementById("verifyCertIdInput").value = certId;
