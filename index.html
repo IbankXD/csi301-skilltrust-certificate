@@ -448,6 +448,23 @@
                 ➕ บันทึกหลักสูตรลง Blockchain
             </button>
 
+            <!-- เพิ่มส่วนจัดการสิทธิ์ผู้ออกใบรับรองสำหรับ Admin -->
+            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-color);">
+                <div class="field-label" style="color: #fb923c; font-weight: 600;">
+                    👑 แต่งตั้งสิทธิ์ผู้ออกใบรับรอง (Authorized Issuer)
+                </div>
+                <div class="input-row" style="margin-bottom: 6px;">
+                    <input type="text" id="newIssuerAddressInput" placeholder="กรอก Wallet Address ของผู้ที่ต้องการให้สิทธิ์ (0x...)" />
+                    <button class="btn btn-accent" onclick="grantIssuerRole(true)" style="white-space: nowrap; font-size: 0.85rem;">
+                        อนุมัติสิทธิ์
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="grantIssuerRole(false)" style="white-space: nowrap;">
+                        ยกเลิกสิทธิ์
+                    </button>
+                </div>
+                <div class="meta-info" style="font-size:0.78rem;">*เฉพาะกระเป๋าที่เป็น Admin (ผู้ Deploy สัญญา) เท่านั้นที่มีสิทธิ์กดแต่งตั้ง</div>
+            </div>
+
             <div class="field-label" style="margin-top: 16px;">
                 <span>รายการหลักสูตรที่ลงทะเบียนแล้ว</span>
                 <button class="btn btn-sm" onclick="loadAllCourses()">🔄 รีเฟรช</button>
@@ -1019,6 +1036,31 @@
             return store[certId.trim()] || "";
         } catch (e) {
             return "";
+        }
+    }
+
+    // จัดการสิทธิ์ผู้ออกใบรับรอง (เฉพาะ Admin)
+    async function grantIssuerRole(status) {
+        if (!contract || !account) return;
+
+        const targetAddr = document.getElementById("newIssuerAddressInput").value.trim();
+        if (!targetAddr || !web3.utils.isAddress(targetAddr)) {
+            setStatus("❌ กรุณาระบุ Wallet Address ให้ถูกต้อง (0x...)", "error");
+            return;
+        }
+
+        try {
+            const actionText = status ? "อนุมัติสิทธิ์ผู้ออกใบรับรอง" : "ยกเลิกสิทธิ์ผู้ออกใบรับรอง";
+            setStatus(`⏳ กำลัง${actionText}ให้ ${targetAddr}...`, "pending");
+
+            const tx = await executeContractTx(
+                contract.methods.setAuthorizedIssuer(targetAddr, status)
+            );
+
+            setStatus(`✅ ${actionText}สำเร็จ! Tx Hash: ${tx.transactionHash}`, "success");
+            document.getElementById("newIssuerAddressInput").value = "";
+        } catch (err) {
+            setStatus(`❌ กำหนดสิทธิ์ไม่สำเร็จ (ต้องทำรายการโดยกระเป๋า Admin เท่านั้น): ${err.message}`, "error");
         }
     }
 
